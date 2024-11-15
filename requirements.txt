@@ -3,7 +3,7 @@ hypothesis
 rtree
 lxml
 pyct
-akantu
+akantu==4.0.1
 gmsh
 itkwidgets
 pyvista
