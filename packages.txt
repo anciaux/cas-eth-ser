@@ -8,3 +8,5 @@ ffmpeg
 liblapack-dev
 libmagickwand-dev
 gmsh
+libxslt1-dev
+libxml2-dev
