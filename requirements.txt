@@ -7,5 +7,4 @@ akantu==4.0.1
 gmsh
 itkwidgets
 pyvista
-git+https://gitlab.com/ganciaux/slides.git
 git+https://gitlab.com/dcsm/solidipes.git
