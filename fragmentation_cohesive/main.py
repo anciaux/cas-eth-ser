@@ -9,7 +9,7 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
-# Input model for src_akantu
+
 ################################################################
 
 
@@ -18,7 +18,7 @@ def runSimulation(model, **params):
     inputdata = argparse.Namespace(**params)
 
     L = inputdata.bar_length
-    h = L/inputdata.number_elements
+    h = L / inputdata.number_elements
 
     # Initiation of variables
     work_previous_step = 0.0
@@ -41,7 +41,7 @@ def runSimulation(model, **params):
     for n in tqdm(range(n_steps), init_text="Integrating time step"):
 
         # Apply velocity at the boundaries
-        generate_model.applyVel(model, applied_vel, n+1, dt)
+        generate_model.applyVel(model, applied_vel, n + 1, dt)
 
         if n % inputdata.dump_freq == 0:
             if inputdata.paraview:
@@ -62,11 +62,12 @@ def runSimulation(model, **params):
 
         # Energy balance
         energies = computeEnergies(
-            model, work_previous_step, fint, data_bc, applied_vel, dt)
+            model, work_previous_step, fint, data_bc, applied_vel, dt
+        )
 
         work_previous_step = energies["external work"]
-        results_energies.append([n*dt] + [v for k, v in energies.items()])
-        headers_energies = ['time'] + [k for k, v in energies.items()]
+        results_energies.append([n * dt] + [v for k, v in energies.items()])
+        headers_energies = ["time"] + [k for k, v in energies.items()]
         d = getDamageParameter(model)
 
         # Fragmentation data
@@ -79,7 +80,7 @@ def runSimulation(model, **params):
         frag_lengths = fragment_data.getNbElementsPerFragment() * h / L
 
         result_step = [
-            n*dt,
+            n * dt,
             n,
             u,
             v,
@@ -88,34 +89,38 @@ def runSimulation(model, **params):
             stress,
             avg_stress_bar,
             n_fragments,
-            frag_lengths
+            frag_lengths,
         ]
         results.append(result_step)
 
     results = pd.DataFrame(
         results,
-        columns=["time",
-                 "step",
-                 "displacement",
-                 "velocity",
-                 "acceleration",
-                 "damage",
-                 "stress",
-                 "avg_stress_bar",
-                 "n_fragments",
-                 "frag_lengths"])
+        columns=[
+            "time",
+            "step",
+            "displacement",
+            "velocity",
+            "acceleration",
+            "damage",
+            "stress",
+            "avg_stress_bar",
+            "n_fragments",
+            "frag_lengths",
+        ],
+    )
 
-    results_energies = pd.DataFrame(
-        results_energies, columns=headers_energies)
+    results_energies = pd.DataFrame(results_energies, columns=headers_energies)
 
-    st.markdown(
-        f"### Computed {dt} * {n_steps} = {inputdata.time_simulation} seconds")
+    st.markdown(f"### Computed {dt} * {n_steps} = {inputdata.time_simulation} seconds")
     return results, results_energies
+
+
 ################################################################
 
 
-def computeEnergies(model, work_previous_step, fint_current_step,
-                    data_bc, applied_vel, dt):
+def computeEnergies(
+    model, work_previous_step, fint_current_step, data_bc, applied_vel, dt
+):
 
     energy_potential = model.getEnergy("potential")
     energy_kinetic = model.getEnergy("kinetic")
@@ -135,16 +140,12 @@ def computeEnergies(model, work_previous_step, fint_current_step,
     freact_previous_step_bcleft = data_bc[0]
     freact_previous_step_bcright = data_bc[1]
 
-    freact_bcleft = (fint_current_step_bcleft +
-                     freact_previous_step_bcleft) * 0.5
-    freact_bcright = (fint_current_step_bcright +
-                      freact_previous_step_bcright) * 0.5
+    freact_bcleft = (fint_current_step_bcleft + freact_previous_step_bcleft) * 0.5
+    freact_bcright = (fint_current_step_bcright + freact_previous_step_bcright) * 0.5
 
     external_work = (
         work_previous_step
-        + (freact_bcleft * -applied_vel +
-           freact_bcright * applied_vel)
-        * dt
+        + (freact_bcleft * -applied_vel + freact_bcright * applied_vel) * dt
     )
 
     data_bc[:] = [freact_bcleft, freact_bcright]
@@ -160,28 +161,31 @@ def computeEnergies(model, work_previous_step, fint_current_step,
 
     return energies_step
 
+
 ################################################################
 
 
 def computeVarEnergiesCZM(energies, n_steps, n_elements):
     """Returns the variation of energies between the current time step
-       and the time step 0.
+    and the time step 0.
     """
 
-    h = 50*1e-3 / n_elements
+    h = 50 * 1e-3 / n_elements
 
     var_energies = (energies - energies.iloc[0]) / h
-    var_energies.columns = ['var ' + v for v in energies.columns]
-    var_energies['var energy total'] = var_energies['var external work'] - (
-        var_energies['var energy potential']
-        + var_energies['var energy kinetic']
-        + var_energies['var energy dissipated']
-        + var_energies['var energy reversible']
-        + var_energies['var energy contact']
+    var_energies.columns = ["var " + v for v in energies.columns]
+    var_energies["var energy total"] = var_energies["var external work"] - (
+        var_energies["var energy potential"]
+        + var_energies["var energy kinetic"]
+        + var_energies["var energy dissipated"]
+        + var_energies["var energy reversible"]
+        + var_energies["var energy contact"]
     )
-    var_energies['var time'] = energies['time']
+    var_energies["var time"] = energies["time"]
 
     return var_energies
+
+
 ################################################################
 
 
@@ -221,7 +225,7 @@ def plotVarEnergiesCZM(var_energies, title):
         axe.set_xlabel(str("Time (s)"))
         axe.set_ylabel("Variation of energy ($ kJ/ {m^2} $)")
 
-        x = var_energies['var time']
+        x = var_energies["var time"]
         axe.plot(x, var_energy_potential, label="varEpot")
         axe.plot(x, var_energy_kinetic, label="varEkin")
         axe.plot(x, var_energy_dissipated, label="varEdis")
@@ -230,6 +234,7 @@ def plotVarEnergiesCZM(var_energies, title):
         axe.plot(x, -var_external_work, label="-varWext")
         axe.plot(x, var_energy_total, label="varEtot")
         axe.legend()
+
 
 ################################################################
 
@@ -241,14 +246,15 @@ def plotFragmentSizeHistogram(fragment_sizes, bins=10, **kwargs):
         axe.set_title("Fragment size distribution")
 
         counts, bins = np.histogram(fragment_sizes, bins=bins)
-        bin_centers = 0.5*(bins[:-1] + bins[1:])
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
         non_zero = counts > 0
         counts = counts[non_zero]
         bins = bin_centers[non_zero]
-        axe.plot(bins, counts, 'o-')
-        axe.set_xlabel('Fragment size s/L')
+        axe.plot(bins, counts, "o-")
+        axe.set_xlabel("Fragment size s/L")
         axe.set_ylabel("Number of fragments")
         axe.set_xlim(xmin=0, xmax=bins.max())
+
 
 ################################################################
 
@@ -266,12 +272,12 @@ def analyze_results(model, results, energies, **params):
     n_files = int(n_steps / 10 + 1)
 
     plotResults(
-        results[['time', 'avg_stress_bar']],
+        results[["time", "avg_stress_bar"]],
         label_x="time (s)",
         label_y="Average stress at the bar (MPa)",
     )
     plotResults(
-        results[['time', 'n_fragments']],
+        results[["time", "n_fragments"]],
         label_x="time (s)",
         label_y="N",
     )
@@ -279,8 +285,9 @@ def analyze_results(model, results, energies, **params):
     var_energies = computeVarEnergiesCZM(energies, n_files, 1250)
     plotVarEnergiesCZM(var_energies, title="CZM: Variation of energy")
 
-    frag_lengths = results['frag_lengths'].iloc[-1]
+    frag_lengths = results["frag_lengths"].iloc[-1]
     plotFragmentSizeHistogram(frag_lengths, **params)
+
 
 ################################################################
 
@@ -297,10 +304,11 @@ def getDamageParameter(model):
     # model.getMaterial("cohesive material").getElementFilter())
     return d
 
+
 ################################################################
 
 
-def main():
+def main(**params):
     try:
         os.mkdir("output")
     except FileExistsError:
@@ -318,4 +326,32 @@ def main():
 
 ################################################################
 if __name__ == "__main__":
-    main()
+
+    params = {
+        "young_modulus": 275.0 * 10**9,  # (Pa)
+        "density": 2750.0,  # (kg/m3)
+        "fracture_energy": 100.0,  # (N/m)
+        "stress_limit": 300.0 * 10**6,  # (Pa)
+        "bar_length": 50 * 10**-3,  # (m)
+        "number_elements": 500 * 2,  # Total number of triangular elements
+        "area": 1.0,  # Cross sectional area (m2) (Equal to element size )
+        # Load
+        "strain_rate": 10.0**4,  # (s-1)
+        # Time
+        "time_simulation": 5 * 10**-7,  # Total time of simulation (s)
+        "dump_freq": 1,
+        "variation_sigma_c": 1e6,  # random(uniform) variation of sigma_c
+        "contact": 0,
+    }
+
+    params.update(
+        {
+            # Left extremitiy x coordinate / 0-initial
+            "x0": -0.5 * params["bar_length"],
+            # Rigth extremitiy x coordinate / f-final
+            "xf": 0.5 * params["bar_length"],
+            "paraview": False,
+        }
+    )
+
+    main(**params)
